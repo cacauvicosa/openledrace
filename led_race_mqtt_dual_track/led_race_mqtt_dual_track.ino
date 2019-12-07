@@ -228,10 +228,6 @@ void draw_car2(byte t ){
 char msg[20];
    
 void loop() {
-    if (t1 == t2 ) {
-       if (dist1>dist2) {leader=1;} 
-    if (dist2>dist1) {leader=2;};
-    }
     if (!client.connected()) {
     reconnect();
     }
@@ -242,23 +238,27 @@ void loop() {
     speed1-=speed1*kf; 
     
     if ( PIN_P2==1 ) {PIN_P2=0;speed2+=ACEL;};
-    if ( swap1==1) {swap1=0; t1= !t1; }
+    if ( swap2==1) {swap2=0; t2= !t2; }
        
     speed2-=speed2*kf; 
 
-        
-    dist1+=speed1;
-    dist2+=speed2;
-
-if (t1 != t2 ) {
-       if (dist1>dist2) {leader=1;} 
-    if (dist2>dist1) {leader=2;};
-    }
-    else {
+if (dist1>dist2) {leader=1;} 
+       else {leader=2;};
+       dist1+=speed1;
+       dist2+=speed2;
+       
+if (t1 == t2 ) {
       if ( leader == 1 && (dist2 + loop2 - 1)>= dist1) dist2=dist1-loop1-5;
       if ( leader == 2 && (dist1 +loop1 -1 )>= dist2) dist1=dist2-loop2-5;     
     }
-      
+
+    
+
+         
+    if (dist1>NPIXELS*loop1) {loop1++;};
+    if (dist2>NPIXELS*loop2) {loop2++;};
+
+     
     if (loop1>loop_max) {for(int i=0;i<NPIXELS;i++){track.setPixelColor(i, track.Color(0,255,0));}; track.show();
                                                     loop1=0;loop2=0;dist1=0;dist2=0;speed1=0;speed2=0;timestamp=0;
                                                     start_race(); 
