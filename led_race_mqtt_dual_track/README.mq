@@ -1,4 +1,4 @@
-Hardware: 300 led strip WS2812, NodeMCU (esp8266)
+Hardware: two 300 led strips WS2812, NodeMCU (esp8266)
 Control: External Mqtt client (It could be a Mqtt Dashboard in a smartphone)
 
 Version features:
