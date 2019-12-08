@@ -1,0 +1,7 @@
+Hardware: 300 led strip WS2812, NodeMCU (esp8266)
+Control: External Mqtt client (It could be a Mqtt Dashboard in a smartphone)
+
+Version features:
+- Mqtt control, please edit the Mqtt topic TrackXX to avoid conflict in a Public Mqtt Broker
+- It requies to swap track to overtake
+- It is possible to have a multiplayer "team" for each car
