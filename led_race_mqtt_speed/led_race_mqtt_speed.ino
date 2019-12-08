@@ -9,13 +9,16 @@
         | |                                                             
         |_|          
  Open LED Race
- An minimalist cars race for LED strip  
-  
- This program is free software; you can redistribute it and/or modify
- it under the terms of the GNU General Public License as published by
- the Free Software Foundation; either version 3 of the License, or
- (at your option) any later version.
+ An minimalist cars race for LED strip 
+ New features:
+ - MQTT control Pushbutton and Speed Dasboard 
 
+ Requeriments
+    Microcontroller is ESP8266 (wifi)
+ 
+ Download from https://github.com/cacauvicosa/openledrace
+
+ Original OpenLedRace code 
  by gbarbarov@singulardevices.com  for Arduino day Seville 2019 
 
  Code made dirty and fast, next improvements in: 
@@ -28,27 +31,21 @@
 #include <ESP8266WiFi.h>
 #include <PubSubClient.h>
 
-const char* ssid = "3gCacau";
-const char* password = "arduino351";
+long randNumber;
 
-const char* mqtt_server = "broker.mqtt-dashboard.com";
-//const char* mqtt_server = "mqtt.dti.ufv.br";
+const char* ssid = "your_wifi_net";
+const char* password = "your_password";
+
+
+const char* mqtt_server = "broker.mqtt-dashboard.com";  // Public Broker, pay attention in topics to avoid conflicts
 
 #define MQTTPORT 1883
 #define SPEEDUPDATE 300
-#define GREENCAR  "trackXX/green" // MQTT topic for Green Car Push Button
-#define REDCAR  "trackXX/red" // MQTT topic for RED Car Push Button
-#define SWAPRED "trackXX/swap/red"
-#define SWAPGREEN "trackXX/swap/green"
-
-
-#define SPEEDRED "publico/fita/velvermelho"
-#define SPEEDGREEN "publico/fita/velverde"
-#define DISTRED "publico/fita/dvermelho"
-#define DISTGREEN "publico/fita/dverde"
-#define TRED "publico/fita/tvermelho"
-#define TGREEN "publico/fita/tverde"
-
+// replace XX for a unique ID (one or two digits should be enough to avoid conflicts to other 
+#define GREENCAR  "trackXX/greencar" // MQTT topic for Green Car Push Button
+#define REDCAR  "trackXX/redcar" // MQTT topic for RED Car Push Button
+#define SPEEDRED "trackXX/redspeed"
+#define SPEEDGREEN "trackXX/greenspeed"
 
 WiFiClient espClient;
 PubSubClient client(espClient);
@@ -88,13 +85,13 @@ void reconnect() {
     // Attempt to connect
     if (client.connect(clientId.c_str())) {
       Serial.println("connected");
-
+/*****
+ * Add two pushbutton subscribe. You could add more controls....
+ */
       // ... and resubscribe
       client.subscribe(GREENCAR);
       client.subscribe(REDCAR);
-      client.subscribe(SWAPRED);
-      client.subscribe(SWAPGREEN);
-
+/*******************************************************/      
     } else {
       Serial.print("failed, rc=");
       Serial.print(client.state());
@@ -112,10 +109,8 @@ void reconnect() {
 
 #define PIN_LED        D3  // R 500 ohms to DI pin for WS2812 and WS2813, for WS2813 BI pin of first LED to GND  ,  CAP 1000 uF to VCC 5v/GND,power supplie 5V 2A  
 
-int PIN_P1=0;   // switch player 1 
-int PIN_P2=0;           // switch player 2  
-byte swap1=0;   // swap track
-byte swap2=0;   // swap track
+int PIN_P1=0;   // Mqtt "switch" state player 1 - Set to One when Receive Mqtt package, and then reset to zero 
+int PIN_P2=0;   // Mqtt "switch" state player 2  
 
 
 int NPIXELS=MAXLED; // leds on track
@@ -123,6 +118,7 @@ int NPIXELS=MAXLED; // leds on track
 #define COLOR1    track.Color(255,0,0)
 #define COLOR2    track.Color(0,255,0)
 
+#define LOOP_max 5
 
 float speed1=0;
 float speed2=0;
@@ -133,41 +129,43 @@ byte loop1=0;
 byte loop2=0;
 
 byte leader=0;
-byte loop_max=5; //total laps race
+byte loop_max=LOOP_max; //total laps race
 
 
 float ACEL=0.2;
 float kf=0.015; //friction constant
 float kg=0.003; //gravity constant
 
-int t_sw1=0;
-int t_sw2=0;
+byte flag_sw1=0;
+byte flag_sw2=0;
 byte draworder=0;
  
 unsigned long timestamp=0;
 
-Adafruit_NeoPixel track = Adafruit_NeoPixel(2*MAXLED, PIN_LED, NEO_GRB + NEO_KHZ800);
+
+
+
+
+Adafruit_NeoPixel track = Adafruit_NeoPixel(MAXLED, PIN_LED, NEO_GRB + NEO_KHZ800);
 
 int tdelay = 5; 
 
 long lastMsg;
 
-byte t1,t2;
 
 void setup() {
   track.begin(); 
-   t1 = 1; t2 = 1; // track1
-
   start_race();    
   Serial.begin(115200);
   setup_wifi();
   client.setServer(mqtt_server, MQTTPORT);
   client.setCallback(callback);
   lastMsg = 0;
+ }
 
-}
-
-
+/**********
+ *  Receive the MQTT package from red/green pushbutton . Set PIN_P0/P1
+ */
 void callback(char* topic, byte* payload, unsigned int length) {
   Serial.print("Message arrived [");
   String Topic(topic);
@@ -178,12 +176,6 @@ void callback(char* topic, byte* payload, unsigned int length) {
   }
   Serial.println();
 
-  if ( Topic.equals(SWAPGREEN) ) {
-    swap1 = 1;
-  }
-  if ( Topic.equals(SWAPRED) ) {
-   swap2 = 1;
-  }
   if ( Topic.equals(GREENCAR) ) {
     PIN_P1 = 1;
   }
@@ -193,7 +185,10 @@ void callback(char* topic, byte* payload, unsigned int length) {
 
 }
 
-void start_race(){for(int i=0;i<2*NPIXELS;i++){track.setPixelColor(i, track.Color(0,0,0));};
+/****
+ * Almost the Original Openled code from 
+ */
+void start_race(){for(int i=0;i<NPIXELS;i++){track.setPixelColor(i, track.Color(0,0,0));};
                   track.show();
                   delay(2000);
                   track.setPixelColor(12, track.Color(0,255,0));
@@ -212,67 +207,64 @@ void start_race(){for(int i=0;i<2*NPIXELS;i++){track.setPixelColor(i, track.Colo
                   timestamp=0;              
                  };
 
-int dd;
-
-
-void draw_car1(byte t){
-  dd = (t == 1)?0:300; 
-  for(int i=0;i<=loop1;i++){track.setPixelColor(((word)dist1 % NPIXELS)+i+dd, track.Color(0,255-i*20,0));}
-}
-  
-void draw_car2(byte t ){
-  dd = (t == 1)?0:300; 
-  for(int i=0;i<=loop2;i++){track.setPixelColor(((word)dist2 % NPIXELS)+i+dd, track.Color(255-i*20,0,0));}
-}
+void draw_car1(void){for(int i=0;i<=loop1;i++){track.setPixelColor(((word)dist1 % NPIXELS)+i, track.Color(255-i*20,0,0));};            
+ }
+void draw_car2(void){for(int i=0;i<=loop2;i++){track.setPixelColor(((word)dist2 % NPIXELS)+i, track.Color(0,255-i*20,0));};            
+ }
 
 char msg[20];
    
 void loop() {
-    if (t1 == t2 ) {
-       if (dist1>dist2) {leader=1;} 
-    if (dist2>dist1) {leader=2;};
-    }
+    for(int i=0;i<NPIXELS;i++){track.setPixelColor(i, track.Color(0,0,0));};
     if (!client.connected()) {
     reconnect();
     }
     client.loop();
 
     if ( PIN_P1==1 ) {PIN_P1=0;speed1+=ACEL;};
-    if ( swap1==1) {swap1=0; t1= !t1; }
+    
     speed1-=speed1*kf; 
     
     if ( PIN_P2==1 ) {PIN_P2=0;speed2+=ACEL;};
-    if ( swap1==1) {swap1=0; t1= !t1; }
        
     speed2-=speed2*kf; 
+
+    long now = millis();
+    if (now - lastMsg > SPEEDUPDATE) {
+       lastMsg = now;
+       snprintf (msg, 20, "%f", speed1*100);
+       client.publish(SPEEDGREEN, msg);
+       Serial.println(msg);
+       snprintf (msg, 20, "%f", speed2*100);
+       client.publish(SPEEDRED, msg);
+       Serial.println(msg);       
+   }
 
         
     dist1+=speed1;
     dist2+=speed2;
 
-if (t1 != t2 ) {
-       if (dist1>dist2) {leader=1;} 
+    if (dist1>dist2) {leader=1;} 
     if (dist2>dist1) {leader=2;};
-    }
-    else {
-      if ( leader == 1 && (dist2 + loop2 - 1)>= dist1) dist2=dist1-loop1-5;
-      if ( leader == 2 && (dist1 +loop1 -1 )>= dist2) dist1=dist2-loop2-5;     
-    }
       
+    if (dist1>NPIXELS*loop1) {loop1++;};
+    if (dist2>NPIXELS*loop2) {loop2++;};
+
     if (loop1>loop_max) {for(int i=0;i<NPIXELS;i++){track.setPixelColor(i, track.Color(0,255,0));}; track.show();
                                                     loop1=0;loop2=0;dist1=0;dist2=0;speed1=0;speed2=0;timestamp=0;
-                                                    start_race(); 
+                                                    start_race();
                                                    }
     if (loop2>loop_max) {for(int i=0;i<NPIXELS;i++){track.setPixelColor(i, track.Color(255,0,0));}; track.show();
                                                     loop1=0;loop2=0;dist1=0;dist2=0;speed1=0;speed2=0;timestamp=0;
                                                     start_race();
                                                    }
+    if ((millis() & 512)==(512*draworder)) {if (draworder==0) {draworder=1;}
+                          else {draworder=0;}   
+                         }; 
 
-for(int i=0;i<2*NPIXELS;i++){
-      track.setPixelColor(i, track.Color(0,0,0));
-      };
-      draw_car1(t1);draw_car2(t2); 
-          
+    if (draworder==0) {draw_car1();draw_car2();}
+        else {draw_car2();draw_car1();}   
+                 
     track.show(); 
     delay(tdelay);
     

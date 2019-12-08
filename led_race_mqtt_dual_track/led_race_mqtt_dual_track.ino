@@ -28,11 +28,10 @@
 #include <ESP8266WiFi.h>
 #include <PubSubClient.h>
 
-const char* ssid = "3gCacau";
-const char* password = "arduino351";
+const char* ssid = "your wifi net";
+const char* password = "your password";
 
 const char* mqtt_server = "broker.mqtt-dashboard.com";
-//const char* mqtt_server = "mqtt.dti.ufv.br";
 
 #define MQTTPORT 1883
 #define SPEEDUPDATE 300
@@ -40,14 +39,6 @@ const char* mqtt_server = "broker.mqtt-dashboard.com";
 #define REDCAR  "trackXX/red" // MQTT topic for RED Car Push Button
 #define SWAPRED "trackXX/swap/red"
 #define SWAPGREEN "trackXX/swap/green"
-
-
-#define SPEEDRED "publico/fita/velvermelho"
-#define SPEEDGREEN "publico/fita/velverde"
-#define DISTRED "publico/fita/dvermelho"
-#define DISTGREEN "publico/fita/dverde"
-#define TRED "publico/fita/tvermelho"
-#define TGREEN "publico/fita/tverde"
 
 
 WiFiClient espClient;

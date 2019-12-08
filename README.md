@@ -1,5 +1,4 @@
-Version ESP8266 with MQTT 
-Replace the push-buttom for MQTT topics
+Version ESP8266 with MQTT, and  replace the push-buttom for MQTT topics
 
 Demo Video in
 
