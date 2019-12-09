@@ -1,6 +1,13 @@
-Version ESP8266 with MQTT, and  replace the push-buttom for MQTT topics
+Version ESP8266 with MQTT, and  replace the push-buttons for MQTT topics
 
-Demo Video in
+Demo Videos in
+<a href="https://www.youtube.com/watch?v=Hyc7qxiDKYk">Dual Track Race</a>
+<a href="https://www.youtube.com/watch?v=Rl4G2aO0dno">Fire Effect Race</a>
+<a href="https://www.youtube.com/watch?v=Ag7PvNm-0Yc&t=18s">How to create the MQTT control button for Dual Track</a>
+<a href="https://www.youtube.com/watch?v=pTobk1r-fdk">How to create feedback for Speed (gauge/line graphic)</a>
+
+
+
 
 Please, if you would like to use a public MQTT broker, 
 create your own topic push button label to avoid conflicts.
